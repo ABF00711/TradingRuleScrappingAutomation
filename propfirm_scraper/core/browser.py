@@ -106,43 +106,81 @@ class BrowserManager:
     async def detect_login_page(self, page: Page) -> bool:
         """Detect if the current page requires login"""
         try:
-            # Common login indicators
-            login_indicators = [
-                'input[type="password"]',
-                'input[name="password"]',
-                'input[id*="password"]',
+            # Get page content first
+            content = await page.content()
+            title = await page.title()
+            url = page.url
+            
+            # Skip login detection for known support/help sites
+            help_domains = [
+                'support.apextraderfunding.com',
+                'support.lucidtrading.com', 
+                'help.tradeify.co',
+                'help.myfundedfutures.com',
+                'helpfutures.fundednext.com',
+                'help.alpha-futures.com',
+                'intercom.help',
+                'help.blueguardianfutures.com',
+                'support.thetradingpit.com',
+                'knowledge.thelegendstrading.com',
+                'helpfutures.e8markets.com',
+                'zendesk.com'
+            ]
+            
+            # Check if this is a known help/support domain
+            for domain in help_domains:
+                if domain in url:
+                    logger.info(f"Skipping login detection for help/support domain: {domain}")
+                    return False
+            
+            # More specific login indicators (avoid false positives)
+            strict_login_indicators = [
                 'form[action*="login"]',
                 'form[action*="signin"]',
                 '.login-form',
                 '.signin-form',
-                'button[type="submit"]:has-text("Login")',
-                'button[type="submit"]:has-text("Sign In")',
-                'a[href*="login"]',
-                'a[href*="signin"]',
+                'input[name="username"]',
+                'input[name="email"][type="email"] + input[type="password"]'  # Email + password combo
             ]
             
-            # Check for login indicators
-            for selector in login_indicators:
+            # Check for strict login indicators
+            for selector in strict_login_indicators:
                 try:
                     element = await page.query_selector(selector)
-                    if element:
+                    if element and await element.is_visible():
                         logger.warning(f"Login required - found: {selector}")
                         return True
                 except:
                     continue
             
-            # Check page title and URL for login keywords
-            title = await page.title()
-            url = page.url
+            # Check for login-specific page titles (more restrictive)
+            login_title_keywords = ['login', 'sign in', 'authenticate']
             
-            login_keywords = ['login', 'signin', 'sign in', 'authenticate', 'auth']
-            
-            if any(keyword in title.lower() for keyword in login_keywords):
-                logger.warning(f"Login required - title contains login keyword: {title}")
+            # Only flag as login if title is PRIMARILY about login
+            title_lower = title.lower()
+            if any(keyword == title_lower.strip() or title_lower.startswith(keyword + ' ') for keyword in login_title_keywords):
+                logger.warning(f"Login required - login-specific title: {title}")
                 return True
             
-            if any(keyword in url.lower() for keyword in login_keywords):
-                logger.warning(f"Login required - URL contains login keyword: {url}")
+            # Check for login-specific URLs (more restrictive)
+            login_url_patterns = ['/login', '/signin', '/auth/login', '/authentication']
+            
+            if any(pattern in url.lower() for pattern in login_url_patterns):
+                logger.warning(f"Login required - login URL pattern: {url}")
+                return True
+            
+            # Check for "access denied" or "unauthorized" messages
+            content_lower = content.lower()
+            access_denied_keywords = [
+                'access denied',
+                'unauthorized',
+                'please log in',
+                'you must be logged in',
+                'authentication required'
+            ]
+            
+            if any(keyword in content_lower for keyword in access_denied_keywords):
+                logger.warning(f"Login required - access denied message found")
                 return True
             
             return False

@@ -1,0 +1,29 @@
+TRADING RULES SCRAPING SUMMARY
+==================================================
+Generated: 2026-02-20 04:16:21
+Total rules extracted: 2
+
+STATUS BREAKDOWN:
+--------------------
+OK: 1
+MISSING_DATA: 1
+
+FIRM BREAKDOWN:
+--------------------
+Test Firm 1: 1
+Test Firm 2: 1
+
+DETAILED RESULTS:
+--------------------
+
+Test Firm 1 - $25,000
+  Status: OK
+  URL: https://example1.com
+  Evaluation Target: $2,000.00
+  Profit Split: 80.0%
+
+Test Firm 2 - $50,000
+  Status: MISSING_DATA
+  URL: https://example2.com
+  Evaluation Target: $4,000.00
+  Profit Split: 90.0%

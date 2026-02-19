@@ -20,6 +20,7 @@ class Status(Enum):
     MISSING_DATA = "MISSING_DATA"
     LOGIN_REQUIRED = "LOGIN_REQUIRED"
     FAILED = "FAILED"
+    NOT_IMPLEMENTED = "NOT_IMPLEMENTED"
 
 class Platform(Enum):
     MT4 = "MT4"

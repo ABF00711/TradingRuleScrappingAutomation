@@ -7,17 +7,26 @@ import yaml
 from pathlib import Path
 from typing import List, Dict, Any
 
-from core.logger import setup_logger
-from core.browser import BrowserManager
-from config.schema import SiteConfig, TradingRule
-from config.enums import Status
-from exporters.google_sheets import GoogleSheetsExporter
+from .core.logger import setup_logger
+from .core.browser import BrowserManager
+from .config.schema import SiteConfig, TradingRule
+from .config.enums import Status
+from .exporters.csv_exporter import CSVExporter
 
-# Import extractors (will be created in next phase)
-# from extractors.apex import ApexExtractor
-# ... other extractors
+# Import extractors
+from .extractors.apex import ApexExtractor
+from .extractors.tradeify import TradeifyExtractor
+# ... other extractors will be added here
 
 logger = setup_logger()
+
+# Try to import Google Sheets exporter, fallback to CSV if not available
+try:
+    from .exporters.google_sheets import GoogleSheetsExporter
+    GOOGLE_SHEETS_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Google Sheets not available: {e}")
+    GOOGLE_SHEETS_AVAILABLE = False
 
 class PropFirmScraper:
     """Main scraper orchestrator"""
@@ -48,15 +57,21 @@ class PropFirmScraper:
             raise
     
     def get_extractor_class(self, extractor_name: str):
-        """Get extractor class by name (placeholder for now)"""
-        # TODO: Import and return actual extractor classes
-        # This will be implemented when we create specific extractors
-        
+        """Get extractor class by name"""
         extractor_mapping = {
-            'ApexExtractor': None,  # ApexExtractor,
-            'LucidExtractor': None,  # LucidExtractor,
-            'TradeifyExtractor': None,  # TradeifyExtractor,
-            # ... add other extractors
+            'ApexExtractor': ApexExtractor,
+            'LucidExtractor': None,  # TODO: Implement
+            'TradeifyExtractor': TradeifyExtractor,
+            'MyFundedFuturesExtractor': None,  # TODO: Implement
+            'FundedNextExtractor': None,  # TODO: Implement
+            'AlphaFuturesExtractor': None,  # TODO: Implement
+            'TopOneFuturesExtractor': None,  # TODO: Implement
+            'BlueGuardianFuturesExtractor': None,  # TODO: Implement
+            'TradingPitExtractor': None,  # TODO: Implement
+            'LegendsTradingExtractor': None,  # TODO: Implement
+            'E8MarketsExtractor': None,  # TODO: Implement
+            'TakeProfitTraderExtractor': None,  # TODO: Implement
+            'TradeDayExtractor': None,  # TODO: Implement
         }
         
         return extractor_mapping.get(extractor_name)
@@ -86,15 +101,15 @@ class PropFirmScraper:
             
             if not extractor_class:
                 logger.warning(f"Extractor not implemented yet: {config.extractor_class}")
-                # Create placeholder rule
+                # Create placeholder rule with NOT_IMPLEMENTED status
                 rule = TradingRule(
                     firm_name=config.name,
-                    account_size="Unknown",
+                    account_size="Not Implemented",
                     account_size_usd=0.0,
                     website_url=config.url,
-                    status=Status.FAILED
+                    status=Status.NOT_IMPLEMENTED
                 )
-                rule.raw_data = {'error': 'Extractor not implemented'}
+                rule.raw_data = {'error': 'Extractor not implemented', 'note': 'This extractor needs to be developed'}
                 return [rule]
             
             # Create page and load website
@@ -180,29 +195,48 @@ class PropFirmScraper:
             if self.browser_manager:
                 await self.browser_manager.close()
     
-    def export_to_google_sheets(self):
-        """Export results to Google Sheets"""
+    def export_results(self):
+        """Export results to Google Sheets or CSV (fallback)"""
         try:
             if not self.results:
                 logger.warning("No results to export")
-                return
+                return None
             
-            logger.info("Exporting results to Google Sheets")
+            # Try Google Sheets first
+            if GOOGLE_SHEETS_AVAILABLE:
+                try:
+                    logger.info("Exporting results to Google Sheets")
+                    
+                    # Create exporter
+                    exporter = GoogleSheetsExporter(
+                        sheet_id=self.sheet_id,
+                        service_account_file=self.service_account_file
+                    )
+                    
+                    # Export data
+                    sheet_url = exporter.export_all(self.results)
+                    
+                    logger.info(f"Google Sheets export completed: {sheet_url}")
+                    return sheet_url
+                    
+                except Exception as e:
+                    logger.error(f"Google Sheets export failed: {e}")
+                    logger.info("Falling back to CSV export")
             
-            # Create exporter
-            exporter = GoogleSheetsExporter(
-                sheet_id=self.sheet_id,
-                service_account_file=self.service_account_file
-            )
+            # Fallback to CSV export
+            logger.info("Exporting results to CSV")
             
-            # Export data
-            sheet_url = exporter.export_all(self.results)
+            csv_exporter = CSVExporter()
+            csv_file = csv_exporter.export_to_csv(self.results)
+            summary_file = csv_exporter.export_summary(self.results)
             
-            logger.info(f"Export completed successfully: {sheet_url}")
-            return sheet_url
+            logger.info(f"CSV export completed: {csv_file}")
+            logger.info(f"Summary report: {summary_file}")
+            
+            return csv_file
             
         except Exception as e:
-            logger.error(f"Failed to export to Google Sheets: {e}")
+            logger.error(f"Failed to export results: {e}")
             raise
     
     def print_summary(self):
@@ -247,12 +281,15 @@ class PropFirmScraper:
             # Print summary
             self.print_summary()
             
-            # Export to Google Sheets
-            sheet_url = self.export_to_google_sheets()
+            # Export results
+            export_result = self.export_results()
             
             logger.info("=== SCRAPING COMPLETED SUCCESSFULLY ===")
-            if sheet_url:
-                logger.info(f"Results available at: {sheet_url}")
+            if export_result:
+                if export_result.startswith('http'):
+                    logger.info(f"Google Sheets: {export_result}")
+                else:
+                    logger.info(f"CSV file: {export_result}")
             
         except Exception as e:
             logger.error(f"Scraper failed: {e}")

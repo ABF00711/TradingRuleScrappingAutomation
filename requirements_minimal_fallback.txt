@@ -1,0 +1,17 @@
+# Absolutely minimal requirements - no Google Sheets API
+# This version exports to CSV instead of Google Sheets
+
+# Core scraping dependencies
+playwright==1.41.0
+beautifulsoup4==4.12.3
+
+# Configuration and data processing
+pyyaml==6.0.1
+python-dateutil==2.8.2
+
+# HTTP requests and utilities
+requests==2.31.0
+
+# Logging and utilities
+colorama==0.4.6
+python-dotenv==1.0.1

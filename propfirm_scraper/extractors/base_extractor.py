@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 from playwright.async_api import Page
+from bs4 import BeautifulSoup
 
 from ..config.schema import TradingRule, SiteConfig
 from ..config.enums import Status
@@ -340,3 +341,15 @@ class BaseExtractor(ABC):
         except Exception as e:
             logger.error(f"Error extracting table data: {e}")
             return []
+    
+    async def parse_html_content(self, page: Page) -> BeautifulSoup:
+        """Parse page HTML content using BeautifulSoup with built-in parser"""
+        try:
+            html_content = await page.content()
+            # Use html.parser (built-in) instead of lxml to avoid compilation issues
+            soup = BeautifulSoup(html_content, 'html.parser')
+            return soup
+            
+        except Exception as e:
+            logger.error(f"Error parsing HTML content: {e}")
+            return BeautifulSoup("", 'html.parser')
