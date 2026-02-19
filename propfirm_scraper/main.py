@@ -21,6 +21,7 @@ from .extractors.fundednext import FundedNextExtractor
 from .extractors.alphafutures import AlphaFuturesExtractor
 from .extractors.takeprofittrader import TakeProfitTraderExtractor
 from .extractors.e8markets import E8MarketsExtractor
+from .extractors.lucidtrading import LucidTradingExtractor
 # ... other extractors will be added here
 
 logger = setup_logger()
@@ -65,7 +66,7 @@ class PropFirmScraper:
         """Get extractor class by name"""
         extractor_mapping = {
             'ApexExtractor': ApexExtractor,
-            'LucidExtractor': None,  # TODO: Implement
+            'LucidExtractor': LucidTradingExtractor,
             'TradeifyExtractor': TradeifyExtractor,
             'MyFundedFuturesExtractor': MyFundedFuturesExtractor,
             'FundedNextExtractor': FundedNextExtractor,
