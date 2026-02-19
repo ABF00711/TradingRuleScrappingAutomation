@@ -1,0 +1,127 @@
+sites:
+  apex_trader:
+    name: "Apex Trader Funding"
+    url: "https://support.apextraderfunding.com/hc/en-us?_gl=1*1phud60*_gcl_au*MTM3NzYzNDc5Ni4xNzcwNjUwMjU0"
+    extractor_class: "ApexExtractor"
+    enabled: true
+    timeout: 30
+    retry_attempts: 2
+    notes: "Main support page"
+
+  lucid_trading:
+    name: "Lucid Trading"
+    url: "https://support.lucidtrading.com/en/"
+    extractor_class: "LucidExtractor"
+    enabled: true
+    timeout: 30
+    retry_attempts: 2
+    notes: "Support center"
+
+  tradeify:
+    name: "Tradeify"
+    url: "https://help.tradeify.co/en"
+    extractor_class: "TradeifyExtractor"
+    enabled: true
+    timeout: 30
+    retry_attempts: 2
+    notes: "Help center"
+
+  my_funded_futures:
+    name: "My Funded Futures"
+    url: "https://help.myfundedfutures.com/en/"
+    extractor_class: "MyFundedFuturesExtractor"
+    enabled: true
+    timeout: 30
+    retry_attempts: 2
+    notes: "Help center"
+
+  funded_next:
+    name: "Funded Next"
+    url: "https://helpfutures.fundednext.com/en/"
+    extractor_class: "FundedNextExtractor"
+    enabled: true
+    timeout: 30
+    retry_attempts: 2
+    notes: "Futures help center"
+
+  alpha_futures:
+    name: "Alpha Futures"
+    url: "https://help.alpha-futures.com/en/"
+    extractor_class: "AlphaFuturesExtractor"
+    enabled: true
+    timeout: 30
+    retry_attempts: 2
+    notes: "Help center"
+
+  top_one_futures:
+    name: "Top One Futures"
+    url: "https://intercom.help/top-one-futures/en"
+    extractor_class: "TopOneFuturesExtractor"
+    enabled: true
+    timeout: 30
+    retry_attempts: 2
+    notes: "Intercom help"
+
+  blue_guardian_futures:
+    name: "Blue Guardian Futures"
+    url: "https://help.blueguardianfutures.com/en/"
+    extractor_class: "BlueGuardianFuturesExtractor"
+    enabled: true
+    timeout: 30
+    retry_attempts: 2
+    notes: "Help center"
+
+  trading_pit:
+    name: "The Trading Pit"
+    url: "https://support.thetradingpit.com/futures"
+    extractor_class: "TradingPitExtractor"
+    enabled: true
+    timeout: 30
+    retry_attempts: 2
+    notes: "Futures support"
+
+  legends_trading:
+    name: "Legends Trading"
+    url: "https://knowledge.thelegendstrading.com/en/"
+    extractor_class: "LegendsTradingExtractor"
+    enabled: true
+    timeout: 30
+    retry_attempts: 2
+    notes: "Knowledge base"
+
+  e8_markets:
+    name: "E8 Markets"
+    url: "https://helpfutures.e8markets.com/en/?_gl=1*e8u66q*_gcl_au*MTE0NDg1MzkzOC4xNzcwODA5MjMxLjczMDgxMTMzNi4xNzcwODA5NzQ3LjE3NzA4MDk3NDg."
+    extractor_class: "E8MarketsExtractor"
+    enabled: true
+    timeout: 30
+    retry_attempts: 2
+    notes: "Futures help center"
+
+  take_profit_trader:
+    name: "Take Profit Trader"
+    url: "https://takeprofittraderhelp.zendesk.com/hc/en-us/categories/15135971175837-FAQ-s"
+    extractor_class: "TakeProfitTraderExtractor"
+    enabled: true
+    timeout: 30
+    retry_attempts: 2
+    notes: "Zendesk FAQ"
+
+  trade_day:
+    name: "Trade Day"
+    url: "https://members.tradeday.com/membership-plans-pricing"
+    extractor_class: "TradeDayExtractor"
+    enabled: true
+    timeout: 30
+    retry_attempts: 2
+    notes: "Membership plans"
+
+# Global settings
+settings:
+  concurrent_sites: 3
+  page_timeout: 30000
+  navigation_timeout: 60000
+  default_wait_time: 2000
+  max_retries: 2
+  headless: true
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"

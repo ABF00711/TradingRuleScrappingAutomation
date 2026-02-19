@@ -1,20 +1,24 @@
-# Normalized PropFirm Scraper - Minimal Dependencies
-
 # Core scraping dependencies
 playwright==1.41.0
 beautifulsoup4==4.12.3
-requests==2.31.0
 
 # Configuration and data processing
 pyyaml==6.0.1
 python-dateutil==2.8.2
 
-# Google Sheets API (optional - falls back to CSV if not available)
+# Google Sheets API (using older versions compatible with Python 3.13)
 google-api-python-client==2.108.0
 google-auth==2.23.4
 google-auth-oauthlib==1.1.0
 google-auth-httplib2==0.1.1
 
-# Utilities
+# HTTP requests and utilities
+requests==2.31.0
+urllib3==1.26.18
+
+# Logging and utilities
 colorama==0.4.6
 python-dotenv==1.0.1
+
+# JSON handling - use built-in json instead
+# jsonschema==4.21.1
