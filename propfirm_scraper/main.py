@@ -18,6 +18,7 @@ from .extractors.apex import ApexExtractor
 from .extractors.tradeify import TradeifyExtractor
 from .extractors.myfundedfutures import MyFundedFuturesExtractor
 from .extractors.fundednext import FundedNextExtractor
+from .extractors.alphafutures import AlphaFuturesExtractor
 # ... other extractors will be added here
 
 logger = setup_logger()
@@ -66,7 +67,7 @@ class PropFirmScraper:
             'TradeifyExtractor': TradeifyExtractor,
             'MyFundedFuturesExtractor': MyFundedFuturesExtractor,
             'FundedNextExtractor': FundedNextExtractor,
-            'AlphaFuturesExtractor': None,  # TODO: Implement
+            'AlphaFuturesExtractor': AlphaFuturesExtractor,
             'TopOneFuturesExtractor': None,  # TODO: Implement
             'BlueGuardianFuturesExtractor': None,  # TODO: Implement
             'TradingPitExtractor': None,  # TODO: Implement
