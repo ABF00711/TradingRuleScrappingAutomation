@@ -19,6 +19,7 @@ from .extractors.tradeify import TradeifyExtractor
 from .extractors.myfundedfutures import MyFundedFuturesExtractor
 from .extractors.fundednext import FundedNextExtractor
 from .extractors.alphafutures import AlphaFuturesExtractor
+from .extractors.takeprofittrader import TakeProfitTraderExtractor
 # ... other extractors will be added here
 
 logger = setup_logger()
@@ -73,7 +74,7 @@ class PropFirmScraper:
             'TradingPitExtractor': None,  # TODO: Implement
             'LegendsTradingExtractor': None,  # TODO: Implement
             'E8MarketsExtractor': None,  # TODO: Implement
-            'TakeProfitTraderExtractor': None,  # TODO: Implement
+            'TakeProfitTraderExtractor': TakeProfitTraderExtractor,
             'TradeDayExtractor': None,  # TODO: Implement
         }
         
