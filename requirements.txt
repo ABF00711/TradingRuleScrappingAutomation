@@ -1,0 +1,26 @@
+# Core scraping dependencies
+playwright==1.41.0
+beautifulsoup4==4.12.3
+lxml==5.1.0
+
+# Data processing
+pandas==2.2.0
+pyyaml==6.0.1
+python-dateutil==2.8.2
+
+# Google Sheets API
+google-api-python-client==2.116.0
+google-auth==2.27.0
+google-auth-oauthlib==1.2.0
+google-auth-httplib2==0.2.0
+
+# HTTP requests and utilities
+requests==2.31.0
+urllib3==2.2.0
+
+# Logging and utilities
+colorama==0.4.6
+python-dotenv==1.0.1
+
+# JSON handling
+jsonschema==4.21.1
