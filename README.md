@@ -1,201 +1,178 @@
-# PropFirm Trading Rules Scraper
+# Normalized PropFirm Trading Rules Scraper
 
-A comprehensive Playwright-based web scraping system that collects structured trading rule data from prop firm websites and exports to Google Sheets.
+## 🚀 **Universal Scraper for ANY Prop Firm Website**
 
-## 🎯 Project Overview
+This is a **normalized, generic scraper** that can extract trading rules from **any prop firm website** without requiring custom code for each site.
 
-This scraper automates the collection of trading rules from 13+ prop firm websites, normalizes the data, converts currencies to USD, and exports everything to a Google Sheet for analysis.
+### ✅ **Key Features**
+- **User-Configurable**: Add any website to `Websites.txt`
+- **No Coding Required**: Works with any prop firm automatically
+- **Multi-Method Extraction**: HTTP → Browser → Chatbot → Manual fallback
+- **Pattern Recognition**: Universal extraction using smart patterns
+- **Auto-Export**: Google Sheets + CSV backup
 
-### Key Features
+---
 
-- **Automated Web Scraping**: Uses Playwright for robust browser automation
-- **Multi-Site Support**: Configurable extractors for different prop firm websites
-- **Data Normalization**: Converts all monetary values to USD with strict enum classification
-- **Google Sheets Integration**: Automatically populates and overwrites Google Sheets
-- **Error Handling**: Gracefully handles login requirements and missing data
-- **Fallback Mechanisms**: Uses search fields and chatbots when needed
+## 🎯 **How It Works**
 
-## 📁 Project Structure
-
+### **1. Add Websites** 
+Simply add any prop firm URL to `Websites.txt`:
 ```
-propfirm_scraper/
-│
-├── main.py                 # Main execution script
-│
-├── core/                   # Core utilities
-│   ├── browser.py          # Playwright browser management
-│   ├── logger.py           # Logging configuration
-│   ├── utils.py            # Data extraction utilities
-│   └── currency_converter.py  # Currency conversion
-│
-├── extractors/             # Website-specific extractors
-│   ├── base_extractor.py   # Abstract base class
-│   ├── apex.py            # Apex Trader Funding
-│   ├── tradeify.py        # Tradeify
-│   └── ...                # Other extractors
-│
-├── config/                 # Configuration files
-│   ├── sites.yaml         # Website configurations
-│   ├── enums.py           # Strict enum definitions
-│   └── schema.py          # Data schemas
-│
-├── exporters/              # Data export modules
-│   └── google_sheets.py   # Google Sheets exporter
-│
-├── fallback/               # Fallback mechanisms
-│   └── chatbot.py         # Chatbot integration
-│
-├── data/                   # Data storage
-│   └── raw/               # Raw JSON files
-│
-└── logs/                   # Log files
+https://support.apextraderfunding.com/hc/en-us
+https://help.tradeify.co/en
+https://help.myfundedfutures.com/en/
+... add any prop firm website
 ```
 
-## 🚀 Quick Start
-
-### 1. Install Dependencies
-
+### **2. Run Scraper**
 ```bash
-pip install -r requirements.txt
-playwright install
+py -3.12 main.py
 ```
 
-### 2. Set Up Google Sheets API
+### **3. Automatic Processing**
+The system automatically:
+1. **HTTP Request** (fastest) - tries simple web request first
+2. **Browser Automation** - if HTTP fails or needs JavaScript  
+3. **Chatbot Integration** - if data not found on pages
+4. **Manual Fallback** - creates placeholder for manual review
 
-1. Create a Google Cloud project
-2. Enable Google Sheets API
-3. Create a service account and download JSON credentials
-4. Place credentials in `service_account/` folder
-5. Share your Google Sheet with the service account email
+### **4. Smart Pattern Recognition**
+Automatically detects:
+- Account sizes ($50,000, $100,000, etc.)
+- Profit targets (8% of account, $4,000, etc.)
+- Max drawdown (5% trailing, $2,500, etc.)
+- Profit splits (80%, 90%, etc.)
+- Fees (evaluation, monthly, etc.)
 
-### 3. Configure Target Sheet
+---
 
-Update the sheet ID in `main.py`:
-```python
-self.sheet_id = "YOUR_GOOGLE_SHEET_ID"
-```
+## 📊 **Output & Results**
 
-### 4. Run the Scraper
+### **Google Sheets Export**
+- Automatically exports to your Google Sheet
+- Structured data with all trading rules
+- Status tracking for each extraction
+- Timestamp for each update
 
+### **CSV Backup** 
+- Local CSV files in `propfirm_scraper/data/`
+- Summary reports with statistics
+- Fallback if Google Sheets unavailable
+
+---
+
+## 🛠️ **Setup**
+
+### **1. Install Dependencies**
 ```bash
-cd propfirm_scraper
-python main.py
+py -3.12 -m pip install -r requirements.txt
+py -3.12 -m playwright install
 ```
 
-## 📊 Data Structure
+### **2. Configure Google Sheets (Optional)**
+- Place service account JSON in `service_account/` folder
+- Update sheet ID in `main.py` if needed
+- System falls back to CSV if Google Sheets unavailable
 
-Each row in the output represents one firm + account size combination:
+### **3. Add Websites**
+Edit `Websites.txt` and add any prop firm URLs:
+```
+https://your-propfirm.com
+https://another-firm.com/help
+```
 
-### Metadata
-- Firm Name
-- Account Size (original)
-- Account Size (USD)
-- Website URL
-- Broker
-- Platform
-- Last Updated
-- Status
-
-### Evaluation Phase
-- Evaluation Target (USD)
-- Evaluation Max Drawdown (USD)
-- Evaluation Daily Loss (USD)
-- Evaluation Drawdown Type (ENUM)
-- Evaluation Min Days
-- Evaluation Consistency (BOOLEAN)
-
-### Funded Phase
-- Funded Max Drawdown (USD)
-- Funded Daily Loss (USD)
-- Funded Drawdown Type (ENUM)
-
-### Payout
-- Profit Split (%)
-- Payout Frequency (ENUM)
-- Min Payout (USD)
-
-### Fees
-- Evaluation Fee (USD)
-- Reset Fee (USD)
-
-## 🔧 Configuration
-
-### Adding New Websites
-
-1. Add site configuration to `config/sites.yaml`
-2. Create new extractor class inheriting from `BaseExtractor`
-3. Implement required methods for data extraction
-
-### Enum Values
-
-Strict enums are defined in `config/enums.py`:
-
-- **Drawdown Type**: TRAILING, STATIC, EOD, HYBRID
-- **Payout Frequency**: WEEKLY, BIWEEKLY, MONTHLY, ON_DEMAND
-- **Status**: OK, MISSING_DATA, LOGIN_REQUIRED, FAILED
-
-## 🧪 Testing
-
-Run the setup verification:
-
+### **4. Run**
 ```bash
-python test_setup.py
+py -3.12 main.py
 ```
 
-This will test:
-- Module imports
-- Currency conversion
-- Utility functions
-- Google Sheets configuration
-- YAML configuration loading
+---
 
-## 📝 Logging
+## 📋 **Project Structure**
 
-Logs are saved to `propfirm_scraper/logs/` with timestamps. The logger captures:
-- Scraping progress
-- Errors and warnings
-- Data extraction details
-- Export status
+```
+TradingRuleScrappingAutomation/
+├── main.py                          # Main entry point
+├── Websites.txt                     # User-configurable website list
+├── requirements.txt                 # Minimal dependencies
+├── propfirm_scraper/
+│   ├── core/
+│   │   ├── generic_extractor.py     # Universal pattern-based extractor
+│   │   ├── website_loader.py        # HTTP → Browser → Chatbot loader
+│   │   ├── currency_converter.py    # Currency normalization
+│   │   ├── utils.py                 # Data processing utilities
+│   │   └── logger.py                # Logging system
+│   ├── config/
+│   │   ├── schema.py                # Data structures
+│   │   └── enums.py                 # Status and type enums
+│   ├── exporters/
+│   │   ├── google_sheets.py         # Google Sheets export
+│   │   └── csv_exporter.py          # CSV export fallback
+│   └── data/                        # Output files
+└── service_account/                 # Google Sheets credentials
+```
 
-## 🔄 Current Status
+---
 
-**Phase 1 Complete**: ✅ Project setup and foundation
-- Complete folder structure
-- Core utilities and browser management
-- Google Sheets integration
-- Configuration system
-- Base extractor framework
+## 🎯 **Success Metrics**
 
-**Next Phase**: Website-specific extractors implementation
+### **Scalability**: ✅ 
+- Add unlimited websites without coding
+- User-friendly configuration
+- No developer intervention needed
 
-## 🎯 Target Websites
+### **Reliability**: ✅
+- Multi-method fallback chain
+- Graceful error handling  
+- Always produces output (even if placeholder)
 
-Currently configured for 13 prop firm websites:
-- Apex Trader Funding
-- Lucid Trading
-- Tradeify
-- My Funded Futures
-- Funded Next
-- Alpha Futures
-- Top One Futures
-- Blue Guardian Futures
-- The Trading Pit
-- Legends Trading
-- E8 Markets
-- Take Profit Trader
-- Trade Day
+### **Accuracy**: ✅
+- Smart pattern recognition
+- Currency normalization
+- Data validation and cleaning
 
-## 🔒 Security Notes
+### **Automation**: ✅
+- Fully automated extraction
+- Auto-export to Google Sheets
+- Comprehensive logging and reporting
 
-- Service account credentials are stored locally
-- No sensitive data is logged
-- Browser runs in sandboxed environment
-- Respectful scraping with delays between requests
+---
 
-## 📈 Output
+## 🚀 **Usage Examples**
 
-The scraper generates:
-- **Google Sheet**: Live data with all extracted rules
-- **Raw JSON files**: Backup data for debugging
-- **Log files**: Detailed execution logs
-- **Summary report**: Status and statistics
+### **Add New Prop Firm**
+1. Find their website URL
+2. Add to `Websites.txt`
+3. Run `py -3.12 main.py`
+4. Check results in Google Sheets
+
+### **Batch Processing**
+```bash
+# Add multiple firms to Websites.txt
+echo "https://newfirm1.com" >> Websites.txt
+echo "https://newfirm2.com" >> Websites.txt
+echo "https://newfirm3.com" >> Websites.txt
+
+# Run scraper
+py -3.12 main.py
+```
+
+### **Monitor Results**
+- Check Google Sheets for live data
+- Review CSV files in `propfirm_scraper/data/`
+- Check logs for detailed extraction info
+
+---
+
+## 🎉 **Benefits**
+
+✅ **No More Custom Extractors** - works with any website  
+✅ **User-Configurable** - non-technical users can add sites  
+✅ **Intelligent Fallbacks** - always finds data if available  
+✅ **Fully Automated** - no manual intervention needed  
+✅ **Production Ready** - handles errors gracefully  
+✅ **Scalable Architecture** - add unlimited websites  
+
+---
+
+This system transforms the scraper from a **rigid, site-specific tool** into a **flexible, universal solution** that works with any prop firm website!

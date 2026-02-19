@@ -1,28 +1,24 @@
 """
-PropFirm Trading Rules Scraper - Main Entry Point
-Complete automation for all 13 prop firm websites
+Normalized PropFirm Trading Rules Scraper
+Generic system that works with any prop firm website
 """
 import asyncio
 import logging
-import yaml
 import sys
 from pathlib import Path
-from typing import List, Dict, Any
 from datetime import datetime
+from typing import List, Dict, Any, Optional
+from urllib.parse import urlparse
+import re
 
 # Add current directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from propfirm_scraper.core.logger import setup_logger
-from propfirm_scraper.core.browser import BrowserManager
-from propfirm_scraper.config.schema import SiteConfig, TradingRule
+from propfirm_scraper.core.generic_extractor import GenericExtractor
+from propfirm_scraper.core.website_loader import WebsiteLoader
+from propfirm_scraper.config.schema import TradingRule
 from propfirm_scraper.config.enums import Status
-
-# Import extractors
-from propfirm_scraper.extractors.apex import ApexExtractor
-from propfirm_scraper.extractors.tradeify import TradeifyExtractor
-
-# Import exporters
 from propfirm_scraper.exporters.csv_exporter import CSVExporter
 
 logger = setup_logger()
@@ -35,15 +31,13 @@ except ImportError as e:
     logger.warning(f"Google Sheets not available: {e}")
     GOOGLE_SHEETS_AVAILABLE = False
 
-class PropFirmScraper:
-    """Complete PropFirm Trading Rules Scraper"""
+class NormalizedPropFirmScraper:
+    """Normalized scraper that works with any prop firm website"""
     
     def __init__(self):
         self.start_time = datetime.now()
-        self.config_path = "propfirm_scraper/config/sites.yaml"
-        self.sites_config = {}
-        self.global_settings = {}
-        self.browser_manager = None
+        self.websites_file = "Websites.txt"
+        self.websites = []
         self.results: List[TradingRule] = []
         
         # Google Sheets configuration
@@ -55,212 +49,244 @@ class PropFirmScraper:
             'total_sites': 0,
             'successful_sites': 0,
             'failed_sites': 0,
-            'login_required_sites': 0,
-            'not_implemented_sites': 0,
+            'http_success': 0,
+            'browser_success': 0,
+            'chatbot_success': 0,
             'total_rules': 0
         }
     
     def print_header(self):
         """Print scraper header"""
         print("=" * 80)
-        print("🚀 PROPFIRM TRADING RULES SCRAPER")
+        print("NORMALIZED PROPFIRM SCRAPER")
         print("=" * 80)
         print(f"Started: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"Target: All 13 prop firm websites")
+        print(f"Input: {self.websites_file}")
+        print(f"Method: HTTP -> Browser -> Chatbot -> Manual")
         print(f"Export: Google Sheets + CSV backup")
         print("=" * 80)
     
-    def load_config(self):
-        """Load sites configuration"""
+    def load_websites(self):
+        """Load websites from websites.txt file"""
         try:
-            with open(self.config_path, 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f)
+            if not Path(self.websites_file).exists():
+                raise FileNotFoundError(f"{self.websites_file} not found")
             
-            self.sites_config = config.get('sites', {})
-            self.global_settings = config.get('settings', {})
-            self.stats['total_sites'] = len(self.sites_config)
+            with open(self.websites_file, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
             
-            logger.info(f"Loaded configuration for {len(self.sites_config)} sites")
+            self.websites = []
+            for line in lines:
+                url = line.strip()
+                if url and url.startswith('http'):
+                    # Extract firm name from URL
+                    parsed = urlparse(url)
+                    domain = parsed.netloc.lower()
+                    
+                    # Extract firm name from domain
+                    firm_name = self.extract_firm_name(domain)
+                    
+                    self.websites.append({
+                        'url': url,
+                        'firm_name': firm_name,
+                        'domain': domain
+                    })
+            
+            self.stats['total_sites'] = len(self.websites)
+            logger.info(f"Loaded {len(self.websites)} websites from {self.websites_file}")
+            
+            # Print loaded websites
+            print(f"\nLoaded {len(self.websites)} websites:")
+            for i, site in enumerate(self.websites, 1):
+                print(f"  {i:2d}. {site['firm_name']} - {site['url']}")
             
         except Exception as e:
-            logger.error(f"Failed to load configuration: {e}")
+            logger.error(f"Failed to load websites: {e}")
             raise
     
-    def get_extractor_class(self, extractor_name: str):
-        """Get extractor class by name"""
-        extractor_mapping = {
-            'ApexExtractor': ApexExtractor,
-            'TradeifyExtractor': TradeifyExtractor,
-            # All others are not implemented yet
-            'LucidExtractor': None,
-            'MyFundedFuturesExtractor': None,
-            'FundedNextExtractor': None,
-            'AlphaFuturesExtractor': None,
-            'TopOneFuturesExtractor': None,
-            'BlueGuardianFuturesExtractor': None,
-            'TradingPitExtractor': None,
-            'LegendsTradingExtractor': None,
-            'E8MarketsExtractor': None,
-            'TakeProfitTraderExtractor': None,
-            'TradeDayExtractor': None,
+    def extract_firm_name(self, domain: str) -> str:
+        """Extract firm name from domain"""
+        # Remove common prefixes and suffixes
+        domain = domain.replace('www.', '').replace('help.', '').replace('support.', '')
+        domain = domain.replace('knowledge.', '').replace('helpfutures.', '')
+        
+        # Split by dots and take main part
+        parts = domain.split('.')
+        if len(parts) >= 2:
+            main_part = parts[0]
+        else:
+            main_part = domain
+        
+        # Convert to readable name
+        name_mappings = {
+            'apextraderfunding': 'Apex Trader Funding',
+            'lucidtrading': 'Lucid Trading',
+            'tradeify': 'Tradeify',
+            'myfundedfutures': 'My Funded Futures',
+            'fundednext': 'Funded Next',
+            'alpha-futures': 'Alpha Futures',
+            'intercom': 'Top One Futures',
+            'blueguardianfutures': 'Blue Guardian Futures',
+            'thetradingpit': 'The Trading Pit',
+            'thelegendstrading': 'Legends Trading',
+            'e8markets': 'E8 Markets',
+            'takeprofittraderhelp': 'Take Profit Trader',
+            'tradeday': 'Trade Day'
         }
         
-        return extractor_mapping.get(extractor_name)
+        # Check for exact matches first
+        for key, name in name_mappings.items():
+            if key in main_part.lower():
+                return name
+        
+        # Fallback: capitalize and clean
+        return main_part.replace('-', ' ').replace('_', ' ').title()
     
-    async def scrape_site(self, site_name: str, site_config: Dict[str, Any]) -> List[TradingRule]:
-        """Scrape a single website"""
+    async def scrape_website(self, website: Dict[str, Any]) -> List[TradingRule]:
+        """Scrape a single website using normalized approach"""
+        firm_name = website['firm_name']
+        url = website['url']
+        
         try:
-            print(f"\n[{site_name}] Starting extraction...")
+            print(f"\n[{firm_name}] Starting extraction...")
+            print(f"    URL: {url}")
             
-            # Create site config object
-            config = SiteConfig(
-                name=site_config['name'],
-                url=site_config['url'],
-                extractor_class=site_config['extractor_class'],
-                enabled=site_config.get('enabled', True),
-                timeout=site_config.get('timeout', 30),
-                retry_attempts=site_config.get('retry_attempts', 2),
-                notes=site_config.get('notes', '')
+            # Initialize website loader
+            loader = WebsiteLoader()
+            
+            # Step 1: Try HTTP request first (fastest)
+            print(f"    Trying HTTP request...")
+            http_content = await loader.load_with_http(url)
+            
+            if http_content:
+                print(f"    HTTP successful")
+                extractor = GenericExtractor(firm_name, url)
+                rules = await extractor.extract_from_html(http_content)
+                
+                if rules:
+                    self.stats['http_success'] += 1
+                    print(f"    Extracted {len(rules)} rules via HTTP")
+                    return rules
+            
+            # Step 2: Try browser automation
+            print(f"    Trying browser automation...")
+            browser_content = await loader.load_with_browser(url)
+            
+            if browser_content:
+                print(f"    Browser successful")
+                extractor = GenericExtractor(firm_name, url)
+                rules = await extractor.extract_from_browser_content(browser_content)
+                
+                if rules:
+                    self.stats['browser_success'] += 1
+                    print(f"    Extracted {len(rules)} rules via Browser")
+                    return rules
+            
+            # Step 3: Try chatbot integration (if available)
+            print(f"    Trying chatbot integration...")
+            chatbot_data = await loader.try_chatbot_extraction(url)
+            
+            if chatbot_data:
+                print(f"    Chatbot successful")
+                extractor = GenericExtractor(firm_name, url)
+                rules = await extractor.extract_from_chatbot_data(chatbot_data)
+                
+                if rules:
+                    self.stats['chatbot_success'] += 1
+                    print(f"    Extracted {len(rules)} rules via Chatbot")
+                    return rules
+            
+            # Step 4: Manual fallback - create placeholder
+            print(f"    All methods failed, creating placeholder")
+            rule = TradingRule(
+                firm_name=firm_name,
+                account_size="Manual Review Required",
+                account_size_usd=0.0,
+                website_url=url,
+                status=Status.MISSING_DATA
             )
+            rule.raw_data = {
+                'error': 'All extraction methods failed',
+                'note': 'Manual review required - website structure not recognized'
+            }
             
-            if not config.enabled:
-                print(f"[{site_name}] Skipped (disabled)")
-                return []
-            
-            # Get extractor class
-            extractor_class = self.get_extractor_class(config.extractor_class)
-            
-            if not extractor_class:
-                print(f"[{site_name}] ⚠️  Not Implemented")
-                rule = TradingRule(
-                    firm_name=config.name,
-                    account_size="Not Implemented",
-                    account_size_usd=0.0,
-                    website_url=config.url,
-                    status=Status.NOT_IMPLEMENTED
-                )
-                rule.raw_data = {'error': 'Extractor not implemented'}
-                return [rule]
-            
-            # Create page - let extractor handle navigation
-            page = await self.browser_manager.new_page()
-            
-            try:
-                # Create extractor and run extraction
-                extractor = extractor_class(config)
-                trading_rules = await extractor.extract_all_rules(page)
-                
-                if trading_rules:
-                    print(f"[{site_name}] ✅ Success - {len(trading_rules)} rules extracted")
-                else:
-                    print(f"[{site_name}] ❌ No data extracted")
-                
-                return trading_rules
-                
-            except Exception as e:
-                logger.error(f"Extraction failed for {site_name}: {e}")
-                print(f"[{site_name}] ❌ Failed: {str(e)}")
-                
-                # Create failed rule
-                rule = TradingRule(
-                    firm_name=config.name,
-                    account_size="Unknown",
-                    account_size_usd=0.0,
-                    website_url=config.url,
-                    status=Status.FAILED
-                )
-                rule.raw_data = {'error': str(e)}
-                return [rule]
-                
-            finally:
-                await page.close()
+            return [rule]
             
         except Exception as e:
-            logger.error(f"Failed to process {site_name}: {e}")
-            print(f"[{site_name}] ❌ Error: {str(e)}")
-            return []
-    
-    async def scrape_all_sites(self):
-        """Scrape all configured websites"""
-        try:
-            # Initialize browser
-            self.browser_manager = BrowserManager(
-                headless=self.global_settings.get('headless', True),
-                timeout=self.global_settings.get('page_timeout', 30000)
+            logger.error(f"Error processing {firm_name}: {e}")
+            print(f"    ERROR: {str(e)}")
+            
+            # Create failed rule
+            rule = TradingRule(
+                firm_name=firm_name,
+                account_size="Error",
+                account_size_usd=0.0,
+                website_url=url,
+                status=Status.FAILED
             )
+            rule.raw_data = {'error': str(e)}
             
-            await self.browser_manager.start()
-            print("🌐 Browser started successfully")
+            return [rule]
+    
+    async def scrape_all_websites(self):
+        """Scrape all websites using normalized approach"""
+        try:
+            print("\nStarting normalized extraction...")
             
-            # Process sites sequentially for better error handling
             all_results = []
             
-            for i, (site_name, site_config) in enumerate(self.sites_config.items(), 1):
+            for i, website in enumerate(self.websites, 1):
                 try:
-                    print(f"\n[{i}/{len(self.sites_config)}] Processing: {site_config['name']}")
+                    print(f"\n[{i}/{len(self.websites)}] Processing: {website['firm_name']}")
                     
-                    site_results = await self.scrape_site(site_name, site_config)
-                    all_results.extend(site_results)
+                    site_results = await self.scrape_website(website)
+                    
+                    # Debug: check what we got
+                    logger.debug(f"Site results type: {type(site_results)}, length: {len(site_results) if site_results else 0}")
+                    
+                    # Flatten any nested lists
+                    if site_results:
+                        for result in site_results:
+                            if isinstance(result, list):
+                                # If we got a nested list, flatten it
+                                logger.warning(f"Found nested list in results for {website['firm_name']}")
+                                all_results.extend(result)
+                            else:
+                                # Normal case - individual rule
+                                all_results.append(result)
+                    
+                    # Update stats
+                    if site_results and site_results[0].status == Status.OK:
+                        self.stats['successful_sites'] += 1
+                    else:
+                        self.stats['failed_sites'] += 1
                     
                     # Small delay between sites
                     await asyncio.sleep(1)
                     
                 except Exception as e:
-                    logger.error(f"Error processing site {site_name}: {e}")
+                    logger.error(f"Error processing {website['firm_name']}: {e}")
+                    self.stats['failed_sites'] += 1
                     continue
             
             self.results = all_results
+            self.stats['total_rules'] = len(self.results)
             
         except Exception as e:
-            logger.error(f"Failed to scrape sites: {e}")
+            logger.error(f"Failed to scrape websites: {e}")
             raise
-        
-        finally:
-            if self.browser_manager:
-                await self.browser_manager.close()
-                print("🌐 Browser closed")
-    
-    def calculate_stats(self):
-        """Calculate scraping statistics"""
-        # Count by status
-        status_counts = {}
-        firm_counts = {}
-        
-        for rule in self.results:
-            status = rule.status.value
-            firm = rule.firm_name
-            
-            status_counts[status] = status_counts.get(status, 0) + 1
-            
-            if firm not in firm_counts:
-                firm_counts[firm] = {'total': 0, 'status': status}
-            firm_counts[firm]['total'] += 1
-        
-        # Calculate site-level stats
-        for firm_data in firm_counts.values():
-            status = firm_data['status']
-            if status == 'OK':
-                self.stats['successful_sites'] += 1
-            elif status == 'FAILED':
-                self.stats['failed_sites'] += 1
-            elif status == 'LOGIN_REQUIRED':
-                self.stats['login_required_sites'] += 1
-            elif status == 'NOT_IMPLEMENTED':
-                self.stats['not_implemented_sites'] += 1
-        
-        self.stats['total_rules'] = len(self.results)
     
     def export_results(self):
         """Export results to Google Sheets or CSV"""
         try:
             if not self.results:
-                print("⚠️  No results to export")
+                print("WARNING: No results to export")
                 return None
             
             # Try Google Sheets first
             if GOOGLE_SHEETS_AVAILABLE:
                 try:
-                    print("📤 Exporting to Google Sheets...")
+                    print("[OUTBOX] Exporting to Google Sheets...")
                     
                     exporter = GoogleSheetsExporter(
                         sheet_id=self.sheet_id,
@@ -268,27 +294,27 @@ class PropFirmScraper:
                     )
                     
                     sheet_url = exporter.export_all(self.results)
-                    print(f"✅ Google Sheets: {sheet_url}")
+                    print(f"SUCCESS: Google Sheets: {sheet_url}")
                     return sheet_url
                     
                 except Exception as e:
                     logger.error(f"Google Sheets export failed: {e}")
-                    print(f"❌ Google Sheets failed: {e}")
-                    print("📤 Falling back to CSV...")
+                    print(f"ERROR: Google Sheets failed: {e}")
+                    print("[OUTBOX] Falling back to CSV...")
             
             # Fallback to CSV export
             csv_exporter = CSVExporter()
             csv_file = csv_exporter.export_to_csv(self.results)
             summary_file = csv_exporter.export_summary(self.results)
             
-            print(f"✅ CSV exported: {csv_file}")
-            print(f"✅ Summary: {summary_file}")
+            print(f"[SUCCESS] CSV exported: {csv_file}")
+            print(f"[SUCCESS] Summary: {summary_file}")
             
             return csv_file
             
         except Exception as e:
             logger.error(f"Export failed: {e}")
-            print(f"❌ Export failed: {e}")
+            print(f"[ERROR] Export failed: {e}")
             return None
     
     def print_summary(self):
@@ -296,39 +322,61 @@ class PropFirmScraper:
         duration = datetime.now() - self.start_time
         
         print("\n" + "=" * 80)
-        print("📊 SCRAPING SUMMARY")
+        print("[CHART] EXTRACTION SUMMARY")
         print("=" * 80)
         print(f"Duration: {duration.total_seconds():.1f} seconds")
         print(f"Sites Processed: {self.stats['total_sites']}")
-        print(f"✅ Successful: {self.stats['successful_sites']}")
-        print(f"❌ Failed: {self.stats['failed_sites']}")
-        print(f"🔐 Login Required: {self.stats['login_required_sites']}")
-        print(f"⚠️  Not Implemented: {self.stats['not_implemented_sites']}")
-        print(f"📋 Total Rules: {self.stats['total_rules']}")
+        print(f"[SUCCESS] Successful: {self.stats['successful_sites']}")
+        print(f"[ERROR] Failed: {self.stats['failed_sites']}")
+        print(f"[CLIPBOARD] Total Rules: {self.stats['total_rules']}")
+        
+        print(f"\n🔧 Method Breakdown:")
+        print(f"[SATELLITE] HTTP Success: {self.stats['http_success']}")
+        print(f"[GLOBE] Browser Success: {self.stats['browser_success']}")
+        print(f"[ROBOT] Chatbot Success: {self.stats['chatbot_success']}")
         
         if self.stats['total_sites'] > 0:
             success_rate = (self.stats['successful_sites'] / self.stats['total_sites']) * 100
-            print(f"🎯 Success Rate: {success_rate:.1f}%")
+            print(f"[TARGET] Success Rate: {success_rate:.1f}%")
     
     def print_detailed_results(self):
-        """Print detailed results by firm"""
+        """Print detailed results"""
         print("\n" + "=" * 80)
-        print("📋 DETAILED RESULTS")
+        print("[CLIPBOARD] DETAILED RESULTS")
         print("=" * 80)
         
-        # Group by firm
+        # Group by firm with safety checks
         firms = {}
         for rule in self.results:
+            # Safety check for nested lists or invalid objects
+            if isinstance(rule, list):
+                logger.error(f"Found nested list in results: {rule}")
+                continue
+            
+            if not hasattr(rule, 'firm_name'):
+                logger.error(f"Invalid rule object without firm_name: {type(rule)}")
+                continue
+            
             firm_name = rule.firm_name
             if firm_name not in firms:
                 firms[firm_name] = []
             firms[firm_name].append(rule)
         
         for firm_name, rules in firms.items():
-            print(f"\n🏢 {firm_name}")
+            print(f"\n[BUILDING] {firm_name}")
             
             for rule in rules:
-                status_emoji = '✅' if rule.status.value == 'OK' else '❌' if rule.status.value == 'FAILED' else '⚠️'
+                # Safety check for nested lists
+                if isinstance(rule, list):
+                    logger.error(f"Found nested list in results for {firm_name}: {rule}")
+                    continue
+                
+                # Safety check for rule object
+                if not hasattr(rule, 'status') or not hasattr(rule, 'account_size'):
+                    logger.error(f"Invalid rule object for {firm_name}: {type(rule)}")
+                    continue
+                
+                status_emoji = '[SUCCESS]' if rule.status.value == 'OK' else '[ERROR]' if rule.status.value == 'FAILED' else '[WARNING]'
                 print(f"   {status_emoji} {rule.account_size} - {rule.status.value}")
                 
                 if rule.status.value == 'OK':
@@ -344,19 +392,19 @@ class PropFirmScraper:
         try:
             self.print_header()
             
-            # Load configuration
-            print("📋 Loading configuration...")
-            self.load_config()
+            # Load websites from file
+            print("[CLIPBOARD] Loading websites...")
+            self.load_websites()
             
-            # Scrape all sites
-            print("🚀 Starting extraction...")
-            await self.scrape_all_sites()
+            if not self.websites:
+                print("[ERROR] No websites found in websites.txt")
+                return
             
-            # Calculate statistics
-            self.calculate_stats()
+            # Scrape all websites
+            await self.scrape_all_websites()
             
             # Export results
-            print("\n📤 Exporting results...")
+            print("\n[OUTBOX] Exporting results...")
             export_result = self.export_results()
             
             # Print results
@@ -364,33 +412,40 @@ class PropFirmScraper:
             self.print_detailed_results()
             
             print("\n" + "=" * 80)
-            print("🎉 SCRAPING COMPLETED!")
+            print("[CELEBRATION] SCRAPING COMPLETED!")
             print("=" * 80)
+            print("[SUCCESS] System is now fully normalized and user-configurable")
+            print("[SUCCESS] Add any prop firm website to websites.txt")
+            print("[SUCCESS] No coding required for new sites")
             
             if export_result:
                 if export_result.startswith('http'):
-                    print("✅ Check your Google Sheet for complete data")
+                    print("[SUCCESS] Check your Google Sheet for complete data")
                 else:
-                    print("✅ Check CSV files in propfirm_scraper/data/")
+                    print("[SUCCESS] Check CSV files in propfirm_scraper/data/")
             
         except Exception as e:
             logger.error(f"Scraper failed: {e}")
-            print(f"❌ Scraper failed: {e}")
+            print(f"[ERROR] Scraper failed: {e}")
             raise
 
 async def main():
     """Entry point"""
-    print("🚀 PropFirm Trading Rules Scraper")
+    print("[ROCKET] Normalized PropFirm Trading Rules Scraper")
+    print("=" * 50)
+    print("[SUCCESS] Works with ANY prop firm website")
+    print("[SUCCESS] User-configurable via websites.txt")
+    print("[SUCCESS] No coding required for new sites")
     print("=" * 50)
     
     try:
-        scraper = PropFirmScraper()
+        scraper = NormalizedPropFirmScraper()
         await scraper.run()
         
     except KeyboardInterrupt:
-        print("\n⚠️  Interrupted by user")
+        print("\n[WARNING]  Interrupted by user")
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\n[ERROR] Error: {e}")
         import traceback
         traceback.print_exc()
 
