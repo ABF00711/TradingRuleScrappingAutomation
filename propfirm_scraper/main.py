@@ -23,6 +23,7 @@ from .extractors.takeprofittrader import TakeProfitTraderExtractor
 from .extractors.e8markets import E8MarketsExtractor
 from .extractors.lucidtrading import LucidTradingExtractor
 from .extractors.toponefutures import TopOneFuturesExtractor
+from .extractors.blueguardianfutures import BlueGuardianFuturesExtractor
 # ... other extractors will be added here
 
 logger = setup_logger()
@@ -73,7 +74,7 @@ class PropFirmScraper:
             'FundedNextExtractor': FundedNextExtractor,
             'AlphaFuturesExtractor': AlphaFuturesExtractor,
             'TopOneFuturesExtractor': TopOneFuturesExtractor,
-            'BlueGuardianFuturesExtractor': None,  # TODO: Implement
+            'BlueGuardianFuturesExtractor': BlueGuardianFuturesExtractor,
             'TradingPitExtractor': None,  # TODO: Implement
             'LegendsTradingExtractor': None,  # TODO: Implement
             'E8MarketsExtractor': E8MarketsExtractor,
