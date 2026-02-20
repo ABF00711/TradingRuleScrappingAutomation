@@ -25,7 +25,8 @@ from .extractors.lucidtrading import LucidTradingExtractor
 from .extractors.toponefutures import TopOneFuturesExtractor
 from .extractors.blueguardianfutures import BlueGuardianFuturesExtractor
 from .extractors.thetradingpit import TheTradingPitExtractor
-# ... other extractors will be added here
+from .extractors.legendstrading import LegendsTradingExtractor
+from .extractors.tradeday import TradeDayExtractor
 
 logger = setup_logger()
 
@@ -77,10 +78,10 @@ class PropFirmScraper:
             'TopOneFuturesExtractor': TopOneFuturesExtractor,
             'BlueGuardianFuturesExtractor': BlueGuardianFuturesExtractor,
             'TradingPitExtractor': TheTradingPitExtractor,
-            'LegendsTradingExtractor': None,  # TODO: Implement
+            'LegendsTradingExtractor': LegendsTradingExtractor,
             'E8MarketsExtractor': E8MarketsExtractor,
             'TakeProfitTraderExtractor': TakeProfitTraderExtractor,
-            'TradeDayExtractor': None,  # TODO: Implement
+            'TradeDayExtractor': TradeDayExtractor,
         }
         
         return extractor_mapping.get(extractor_name)

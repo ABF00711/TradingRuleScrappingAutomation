@@ -109,12 +109,12 @@ sites:
 
   trade_day:
     name: "Trade Day"
-    url: "https://members.tradeday.com/membership-plans-pricing"
+    url: "https://tradeday.com/"
     extractor_class: "TradeDayExtractor"
     enabled: true
     timeout: 30
     retry_attempts: 2
-    notes: "Membership plans"
+    notes: "Main website"
 
 # Global settings
 settings:
