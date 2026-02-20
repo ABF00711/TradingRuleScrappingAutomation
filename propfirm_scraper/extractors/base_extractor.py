@@ -141,8 +141,29 @@ class BaseExtractor(ABC):
             # Extract broker and platform info (common for all account sizes)
             broker_platform = await self.extract_broker_platform(page)
             
-            # Extract rules for each account size
+            # Filter account sizes to minimum 50K USD
+            filtered_account_sizes = []
             for account_size in account_sizes:
+                account_size_usd = converter.parse_and_convert(account_size) or 0.0
+                if account_size_usd >= 50000:  # Minimum 50K USD
+                    filtered_account_sizes.append(account_size)
+                else:
+                    logger.info(f"Skipping {account_size} (${account_size_usd:,.0f}) - below 50K minimum")
+            
+            if not filtered_account_sizes:
+                logger.warning(f"No account sizes >= 50K found for {self.firm_name}")
+                # Create a single rule with missing data status
+                rule = TradingRule(
+                    firm_name=self.firm_name,
+                    account_size="No accounts >= $50K",
+                    account_size_usd=0.0,
+                    website_url=self.base_url,
+                    status=Status.MISSING_DATA
+                )
+                return [rule]
+            
+            # Extract rules for each filtered account size
+            for account_size in filtered_account_sizes:
                 try:
                     logger.info(f"Extracting rules for {self.firm_name} - {account_size}")
                     
@@ -165,16 +186,16 @@ class BaseExtractor(ABC):
                         platform=broker_platform.get('platform'),
                         
                         # Evaluation rules
-                        evaluation_target_usd=evaluation_rules.get('target_usd'),
+                        evaluation_target_usd=evaluation_rules.get('profit_target_usd') or evaluation_rules.get('target_usd'),
                         evaluation_max_drawdown_usd=evaluation_rules.get('max_drawdown_usd'),
-                        evaluation_daily_loss_usd=evaluation_rules.get('daily_loss_usd'),
+                        evaluation_daily_loss_usd=evaluation_rules.get('daily_loss_limit_usd'),
                         evaluation_drawdown_type=evaluation_rules.get('drawdown_type'),
-                        evaluation_min_days=evaluation_rules.get('min_days'),
-                        evaluation_consistency=evaluation_rules.get('consistency'),
+                        evaluation_min_days=evaluation_rules.get('min_trading_days') or evaluation_rules.get('min_days'),
+                        evaluation_consistency=evaluation_rules.get('consistency_rule') or evaluation_rules.get('consistency'),
                         
                         # Funded rules
                         funded_max_drawdown_usd=funded_rules.get('max_drawdown_usd'),
-                        funded_daily_loss_usd=funded_rules.get('daily_loss_usd'),
+                        funded_daily_loss_usd=funded_rules.get('daily_loss_limit_usd'),
                         funded_drawdown_type=funded_rules.get('drawdown_type'),
                         
                         # Payout rules
